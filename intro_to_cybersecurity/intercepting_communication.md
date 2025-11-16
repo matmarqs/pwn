@@ -476,3 +476,43 @@ We get the cookies and add them to the browser on the URL `http://10.0.0.2/flag`
 ![](fig/sniffing_cookies-firefox.png)
 
 Flag: `pwn.college{wAScsKGa45oKeLjXMXo2uvw_GD8.0VM0AjNxwyMyITOyEzW}`
+
+## Network Configuration
+
+```
+hacker@intercepting-communication~network-configuration:~$ /challenge/run
+root@ip-10-0-0-1:~# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host proto kernel_lo
+       valid_lft forever preferred_lft forever
+3: eth0@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 6e:c0:c6:23:37:9c brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 10.0.0.1/24 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::6cc0:c6ff:fe23:379c/64 scope link proto kernel_ll
+       valid_lft forever preferred_lft forever
+root@ip-10-0-0-1:~# ip addr add 10.0.0.3 dev eth0
+root@ip-10-0-0-1:~# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host proto kernel_lo
+       valid_lft forever preferred_lft forever
+3: eth0@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 6e:c0:c6:23:37:9c brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 10.0.0.1/24 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet 10.0.0.3/32 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::6cc0:c6ff:fe23:379c/64 scope link proto kernel_ll
+       valid_lft forever preferred_lft forever
+root@ip-10-0-0-1:~# nc -lvnp 31337
+Listening on 0.0.0.0 31337
+Connection received on 10.0.0.2 36488
+pwn.college{0ZEFN5Rm7pckFqOH019zoI2BF6r.QX1YzMzwyMyITOyEzW}
+```
+
