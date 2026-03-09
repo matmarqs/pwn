@@ -802,3 +802,814 @@ pwn.college{wlBjgnFOtwzxSKohFdIkN_n03CK.01MxUjNxwyMyITOyEzW}
 ```
 
 ## Input Restrictions (C)
+
+```
+│     │ └─> 0x004012df      4183c8ff       or r8d, 0xffffffff          ; -1
+│     │     0x004012e3      31ff           xor edi, edi                ; int fildes
+│     │     0x004012e5      488d0d0c0e..   lea rcx, str.ERROR:_Failed_to_read_header_ ; 0x4020f8 ; "ERROR: Failed to read header!" ; int64_t arg4
+│     │     0x004012ec      4889e6         mov rsi, rsp                ; void *buf
+│     │     0x004012ef      ba18000000     mov edx, 0x18               ; 24 ; size_t nbyte
+│     │     0x004012f4      e8d2020000     call sym.read_exact
+│     │     0x004012f9      803c2463       cmp byte [rsp], 0x63        ; 'c'
+│     │ ┌─< 0x004012fd      7515           jne 0x401314
+│     │ │   0x004012ff      807c240149     cmp byte [var_1h], 0x49     ; 'I'
+│     │┌──< 0x00401304      750e           jne 0x401314
+│     │││   0x00401306      807c24024d     cmp byte [var_2h], 0x4d     ; 'M'
+│    ┌────< 0x0040130b      7507           jne 0x401314
+│    ││││   0x0040130d      807c240347     cmp byte [var_3h], 0x47     ; 'G'
+│   ┌─────< 0x00401312      7414           je 0x401328
+│   │││││   ; CODE XREFS from main @ 0x4012fd(x), 0x401304(x), 0x40130b(x)
+│   │└─└└─> 0x00401314      488d3dfb0d..   lea rdi, str.ERROR:_Invalid_magic_number_ ; 0x402116 ; "ERROR: Invalid magic number!"
+│   │ │     ; CODE XREFS from main @ 0x401335(x), 0x401344(x), 0x401352(x), 0x40136b(x)
+│  ┌─┌─┌┌─> 0x0040131b      e820feffff     call sym.imp.puts           ; int puts(const char *s)
+│  ╎│╎│╎╎   ; CODE XREFS from main @ 0x4012c8(x), 0x4013c2(x)
+│ ┌───└───> 0x00401320      83cfff         or edi, 0xffffffff          ; -1
+│ ╎╎│╎ ╎╎   0x00401323      e8d8feffff     call sym.imp.exit           ; void exit(int status)
+│ ╎╎│╎ ╎╎   ; CODE XREF from main @ 0x401312(x)
+│ ╎╎└─────> 0x00401328      48837c240401   cmp qword [var_4h], 1
+│ ╎╎ ╎ ╎╎   0x0040132e      488d3dfe0d..   lea rdi, str.ERROR:_Unsupported_version_ ; 0x402133 ; "ERROR: Unsupported version!"
+│ ╎└──────< 0x00401335      75e4           jne 0x40131b
+│ ╎  ╎ ╎╎   0x00401337      48837c240c3e   cmp qword [var_ch], 0x3e    ; '>'
+│ ╎  ╎ ╎╎   0x0040133d      488d3d0b0e..   lea rdi, str.ERROR:_Incorrect_width_ ; 0x40214f ; "ERROR: Incorrect width!"
+│ ╎  └────< 0x00401344      75d5           jne 0x40131b
+│ ╎    ╎╎   0x00401346      837c24140e     cmp dword [var_14h], 0xe
+│ ╎    ╎╎   0x0040134b      488d3d150e..   lea rdi, str.ERROR:_Incorrect_height_ ; 0x402167 ; "ERROR: Incorrect height!"
+│ ╎    └──< 0x00401352      75c7           jne 0x40131b
+│ ╎     ╎   0x00401354      bf64030000     mov edi, 0x364              ; 868 ; size_t size
+│ ╎     ╎   0x00401359      e862feffff     call sym.imp.malloc         ;  void *malloc(size_t size)
+│ ╎     ╎   0x0040135e      488d3d1b0e..   lea rdi, str.ERROR:_Failed_to_allocate_memory_for_the_image_data_ ; 0x402180 ; "ERROR: Failed to allocate memory for the image data!"
+│ ╎     ╎   0x00401365      4889c3         mov rbx, rax
+│ ╎     ╎   0x00401368      4885c0         test rax, rax
+│ ╎     └─< 0x0040136b      74ae           je 0x40131b
+│ ╎         0x0040136d      ba64030000     mov edx, 0x364              ; 868 ; size_t nbyte
+│ ╎         0x00401372      4889c6         mov rsi, rax                ; void *buf
+│ ╎         0x00401375      4183c8ff       or r8d, 0xffffffff          ; -1
+│ ╎         0x00401379      31ff           xor edi, edi                ; int fildes
+│ ╎         0x0040137b      488d0d330e..   lea rcx, str.ERROR:_Failed_to_read_data_ ; 0x4021b5 ; "ERROR: Failed to read data!" ; int64_t arg4
+│ ╎         0x00401382      e844020000     call sym.read_exact
+│ ╎         0x00401387      8b542414       mov edx, dword [var_14h]
+│ ╎         0x0040138b      480faf54240c   imul rdx, qword [var_ch]
+│ ╎         0x00401391      31c0           xor eax, eax
+│ ╎         ; CODE XREF from main @ 0x4013a6(x)
+│ ╎     ┌─> 0x00401393      4839c2         cmp rdx, rax
+│ ╎    ┌──< 0x00401396      742f           je 0x4013c7
+│ ╎    │╎   0x00401398      0fb60c03       movzx ecx, byte [rbx + rax]
+│ ╎    │╎   0x0040139c      48ffc0         inc rax
+│ ╎    │╎   0x0040139f      8d71e0         lea esi, [rcx - 0x20]
+│ ╎    │╎   0x004013a2      4080fe5e       cmp sil, 0x5e               ; '^' ; 94
+│ ╎    │└─< 0x004013a6      76eb           jbe 0x401393
+│ ╎    │    0x004013a8      488b3d912c..   mov rdi, qword [obj.stderr] ; obj.stderr__GLIBC_2.2.5
+│ ╎    │                                                               ; [0x404040:8]=0
+│ ╎    │    0x004013af      488d151b0e..   lea rdx, str.ERROR:_Invalid_character_0x_x_in_the_image_data__n ; str.ERROR:_Invalid_character_0x_x_in_the_image_data__n
+│ ╎    │                                                               ; 0x4021d1 ; "ERROR: Invalid character 0x%x in the image data!\n"
+│ ╎    │    0x004013b6      be01000000     mov esi, 1
+│ ╎    │    0x004013bb      31c0           xor eax, eax
+│ ╎    │    0x004013bd      e84efeffff     call sym.imp.__fprintf_chk
+│ └───────< 0x004013c2      e959ffffff     jmp 0x401320
+│      │    ; CODE XREF from main @ 0x401396(x)
+│      └──> 0x004013c7      31c0           xor eax, eax
+│           0x004013c9      e808010000     call sym.win
+```
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+payload = b""
+payload += b"cIMG"
+payload += struct.pack("<Q", 1) # version qword
+payload += struct.pack("<Q", 0x3e) # width qword
+payload += struct.pack("<I", 0xe) # height dword
+payload += b"0x20" * (0x3e * 0xe) # width x height bytes that are 0x20 <= b <= 0x7e
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~input-restrictions-c:~$ python3 cimg_payload.py | /challenge/cimg
+pwn.college{wXsbxJ-J2kJjpvk42ovD8Ou4oir.0FNxUjNxwyMyITOyEzW}
+```
+
+## Input Restrictions (x86)
+
+```
+│     │ │   ; CODE XREF from main @ 0x401290(x)
+│     │ └─> 0x004012e1      4183c8ff       or r8d, 0xffffffff          ; -1
+│     │     0x004012e5      31ff           xor edi, edi                ; int fildes
+│     │     0x004012e7      488d74240a     lea rsi, [var_ah]           ; void *buf
+│     │     0x004012ec      ba0e000000     mov edx, 0xe                ; 14 ; size_t nbyte
+│     │     0x004012f1      488d0d000e..   lea rcx, str.ERROR:_Failed_to_read_header_ ; 0x4020f8 ; "ERROR: Failed to read header!" ; int64_t arg4
+│     │     0x004012f8      e8ce020000     call sym.read_exact
+│     │     0x004012fd      807c240a63     cmp byte [var_ah], 0x63     ; 'c'
+│     │ ┌─< 0x00401302      7515           jne 0x401319
+│     │ │   0x00401304      807c240b49     cmp byte [var_bh], 0x49     ; 'I'
+│     │┌──< 0x00401309      750e           jne 0x401319
+│     │││   0x0040130b      807c240c4d     cmp byte [var_ch], 0x4d     ; 'M'
+│    ┌────< 0x00401310      7507           jne 0x401319
+│    ││││   0x00401312      807c240d47     cmp byte [var_dh], 0x47     ; 'G'
+│   ┌─────< 0x00401317      7414           je 0x40132d
+│   │││││   ; CODE XREFS from main @ 0x401302(x), 0x401309(x), 0x401310(x)
+│   │└─└└─> 0x00401319      488d3df60d..   lea rdi, str.ERROR:_Invalid_magic_number_ ; 0x402116 ; "ERROR: Invalid magic number!"
+│   │ │     ; CODE XREFS from main @ 0x401339(x), 0x401348(x), 0x401356(x), 0x40136f(x)
+│  ┌─┌─┌┌─> 0x00401320      e81bfeffff     call sym.imp.puts           ; int puts(const char *s)
+│  ╎│╎│╎╎   ; CODE XREFS from main @ 0x4012ca(x), 0x4013c5(x)
+│ ┌───└───> 0x00401325      83cfff         or edi, 0xffffffff          ; -1
+│ ╎╎│╎ ╎╎   0x00401328      e8d3feffff     call sym.imp.exit           ; void exit(int status)
+│ ╎╎│╎ ╎╎   ; CODE XREF from main @ 0x401317(x)
+│ ╎╎└─────> 0x0040132d      837c240e01     cmp dword [var_eh], 1
+│ ╎╎ ╎ ╎╎   0x00401332      488d3dfa0d..   lea rdi, str.ERROR:_Unsupported_version_ ; 0x402133 ; "ERROR: Unsupported version!"
+│ ╎└──────< 0x00401339      75e5           jne 0x401320
+│ ╎  ╎ ╎╎   0x0040133b      66837c24124f   cmp word [var_12h], 0x4f    ; 'O'
+│ ╎  ╎ ╎╎   0x00401341      488d3d070e..   lea rdi, str.ERROR:_Incorrect_width_ ; 0x40214f ; "ERROR: Incorrect width!"
+│ ╎  └────< 0x00401348      75d6           jne 0x401320
+│ ╎    ╎╎   0x0040134a      837c241418     cmp dword [var_14h], 0x18
+│ ╎    ╎╎   0x0040134f      488d3d110e..   lea rdi, str.ERROR:_Incorrect_height_ ; 0x402167 ; "ERROR: Incorrect height!"
+│ ╎    └──< 0x00401356      75c8           jne 0x401320
+│ ╎     ╎   0x00401358      bf68070000     mov edi, 0x768              ; 1896 ; size_t size
+│ ╎     ╎   0x0040135d      e85efeffff     call sym.imp.malloc         ;  void *malloc(size_t size)
+│ ╎     ╎   0x00401362      488d3d170e..   lea rdi, str.ERROR:_Failed_to_allocate_memory_for_the_image_data_ ; 0x402180 ; "ERROR: Failed to allocate memory for the image data!"
+│ ╎     ╎   0x00401369      4889c3         mov rbx, rax
+│ ╎     ╎   0x0040136c      4885c0         test rax, rax
+│ ╎     └─< 0x0040136f      74af           je 0x401320
+│ ╎         0x00401371      ba68070000     mov edx, 0x768              ; 1896 ; size_t nbyte
+│ ╎         0x00401376      4889c6         mov rsi, rax                ; void *buf
+│ ╎         0x00401379      4183c8ff       or r8d, 0xffffffff          ; -1
+│ ╎         0x0040137d      31ff           xor edi, edi                ; int fildes
+│ ╎         0x0040137f      488d0d2f0e..   lea rcx, str.ERROR:_Failed_to_read_data_ ; 0x4021b5 ; "ERROR: Failed to read data!" ; int64_t arg4
+│ ╎         0x00401386      e840020000     call sym.read_exact
+│ ╎         0x0040138b      0fb7542412     movzx edx, word [var_12h]
+│ ╎         0x00401390      0faf542414     imul edx, dword [var_14h]
+│ ╎         0x00401395      31c0           xor eax, eax
+│ ╎         ; CODE XREF from main @ 0x4013a9(x)
+│ ╎     ┌─> 0x00401397      39c2           cmp edx, eax
+│ ╎    ┌──< 0x00401399      762f           jbe 0x4013ca
+│ ╎    │╎   0x0040139b      0fb60c03       movzx ecx, byte [rbx + rax]
+│ ╎    │╎   0x0040139f      48ffc0         inc rax
+│ ╎    │╎   0x004013a2      8d71e0         lea esi, [rcx - 0x20]
+│ ╎    │╎   0x004013a5      4080fe5e       cmp sil, 0x5e               ; '^' ; 94
+│ ╎    │└─< 0x004013a9      76ec           jbe 0x401397
+│ ╎    │    0x004013ab      488b3d8e2c..   mov rdi, qword [obj.stderr] ; obj.stderr__GLIBC_2.2.5
+│ ╎    │                                                               ; [0x404040:8]=0
+│ ╎    │    0x004013b2      488d15180e..   lea rdx, str.ERROR:_Invalid_character_0x_x_in_the_image_data__n ; str.ERROR:_Invalid_character_0x_x_in_the_image_data__n
+│ ╎    │                                                               ; 0x4021d1 ; "ERROR: Invalid character 0x%x in the image data!\n"
+│ ╎    │    0x004013b9      be01000000     mov esi, 1
+│ ╎    │    0x004013be      31c0           xor eax, eax
+│ ╎    │    0x004013c0      e84bfeffff     call sym.imp.__fprintf_chk
+│ └───────< 0x004013c5      e95bffffff     jmp 0x401325
+│      │    ; CODE XREF from main @ 0x401399(x)
+│      └──> 0x004013ca      31c0           xor eax, eax
+│           0x004013cc      e805010000     call sym.win
+```
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+payload = b""
+payload += b"cIMG"
+payload += struct.pack("<I", 1) # version dword
+payload += struct.pack("<H", 0x4f) # width word
+payload += struct.pack("<I", 0x18) # height dword
+payload += b"0x20" * 0x768 # width x height bytes that are 0x20 <= b <= 0x7e
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~input-restrictions-x86:~$ python3 cimg_payload.py | /challenge/cimg 
+pwn.college{8PmZHJRMnOuf8EYgPA7nLJHAIIp.0FNwMDMxwyMyITOyEzW}
+```
+
+## Behold the cIMG! (Python)
+
+```python
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import os
+import sys
+from collections import namedtuple
+
+Pixel = namedtuple("Pixel", ["ascii"])
+
+
+def main():
+    if len(sys.argv) >= 2:
+        path = sys.argv[1]
+        assert path.endswith(".cimg"), "ERROR: file has incorrect extension"
+        file = open(path, "rb")
+    else:
+        file = sys.stdin.buffer
+
+    header = file.read1(20)
+    assert len(header) == 20, "ERROR: Failed to read header!"
+
+    assert header[:4] == b"cIMG", "ERROR: Invalid magic number!"
+
+    assert int.from_bytes(header[4:12], "little") == 1, "ERROR: Invalid version!"
+
+    width = int.from_bytes(header[12:16], "little")
+
+    height = int.from_bytes(header[16:20], "little")
+
+    data = file.read1(width * height)
+    assert len(data) == width * height, "ERROR: Failed to read data!"
+
+    pixels = [Pixel(character) for character in data]
+
+    invalid_character = next((pixel.ascii for pixel in pixels if not (0x20 <= pixel.ascii <= 0x7E)), None)
+    assert invalid_character is None, f"ERROR: Invalid character {invalid_character:#04x} in data!"
+
+    framebuffer = "".join(
+        bytes(pixel.ascii for pixel in pixels[row_start : row_start + width]).decode() + "\n"
+        for row_start in range(0, len(pixels), width)
+    )
+    print(framebuffer)
+
+    nonspace_count = sum(1 for pixel in pixels if chr(pixel.ascii) != " ")
+    if nonspace_count != 275:
+        return
+
+    with open("/flag", "r") as f:
+        flag = f.read()
+        print(flag)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except AssertionError as e:
+        print(e, file=sys.stderr)
+        sys.exit(-1)
+```
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+# width * height must be 275
+width = 25
+height = 11
+
+payload = b""
+payload += b"cIMG"
+payload += struct.pack("<Q", 1) # version qword
+payload += struct.pack("<I", width) # width dword
+payload += struct.pack("<I", height) # height dword
+payload += b"\x61" * (width * height) # width x height bytes that are 0x20 <= b <= 0x7e
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~behold-the-cimg-python:~$ python3 cimg_payload.py | /challenge/cimg 
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+
+pwn.college{w5swLdPsWE3jIhqr6C_V0Q5fFGm.0VNxUjNxwyMyITOyEzW}
+```
+
+## Behold the cIMG! (C)
+
+```
+│     │ └─> 0x00401308      4183c8ff       or r8d, 0xffffffff          ; -1
+│     │     0x0040130c      31ff           xor edi, edi                ; int fildes
+│     │     0x0040130e      488d0de30d..   lea rcx, str.ERROR:_Failed_to_read_header_ ; 0x4020f8 ; "ERROR: Failed to read header!" ; int64_t arg4
+│     │     0x00401315      4889ee         mov rsi, rbp                ; void *buf
+│     │     0x00401318      ba0f000000     mov edx, 0xf                ; 15 ; size_t nbyte
+│     │     0x0040131d      e8f9020000     call sym.read_exact
+│     │     0x00401322      807c240963     cmp byte [var_9h], 0x63     ; 'c'
+│     │ ┌─< 0x00401327      7515           jne 0x40133e
+│     │ │   0x00401329      807c240a49     cmp byte [var_ah], 0x49     ; 'I'
+│     │┌──< 0x0040132e      750e           jne 0x40133e
+│     │││   0x00401330      807c240b4d     cmp byte [var_bh], 0x4d     ; 'M'
+│    ┌────< 0x00401335      7507           jne 0x40133e
+│    ││││   0x00401337      807c240c47     cmp byte [var_ch], 0x47     ; 'G'
+│   ┌─────< 0x0040133c      7414           je 0x401352
+│   │││││   ; CODE XREFS from main @ 0x401327(x), 0x40132e(x), 0x401335(x)
+│   │└─└└─> 0x0040133e      488d3dd10d..   lea rdi, str.ERROR:_Invalid_magic_number_ ; 0x402116 ; "ERROR: Invalid magic number!"
+│   │ │     ; CODE XREFS from main @ 0x40135e(x), 0x401381(x)
+│   │ │┌┌─> 0x00401345      e816feffff     call sym.imp.puts           ; int puts(const char *s)
+│   │ │╎╎   ; CODE XREFS from main @ 0x4012f1(x), 0x4013d7(x)
+│   │┌└───> 0x0040134a      83cfff         or edi, 0xffffffff          ; -1
+│   │╎ ╎╎   0x0040134d      e8cefeffff     call sym.imp.exit           ; void exit(int status)
+│   │╎ ╎╎   ; CODE XREF from main @ 0x40133c(x)
+│   └─────> 0x00401352      807c240d01     cmp byte [var_dh], 1
+│    ╎ ╎╎   0x00401357      488d3dd50d..   lea rdi, str.ERROR:_Unsupported_version_ ; 0x402133 ; "ERROR: Unsupported version!"
+│    ╎ └──< 0x0040135e      75e5           jne 0x401345
+│    ╎  ╎   0x00401360      440fb7642416   movzx r12d, word [var_16h]
+│    ╎  ╎   0x00401366      4c0faf64240e   imul r12, qword [size]
+│    ╎  ╎   0x0040136c      4c89e7         mov rdi, r12                ; size_t size
+│    ╎  ╎   0x0040136f      e86cfeffff     call sym.imp.malloc         ;  void *malloc(size_t size)
+│    ╎  ╎   0x00401374      488d3dd40d..   lea rdi, str.ERROR:_Failed_to_allocate_memory_for_the_image_data_ ; 0x40214f ; "ERROR: Failed to allocate memory for the image data!"
+│    ╎  ╎   0x0040137b      4889c3         mov rbx, rax
+│    ╎  ╎   0x0040137e      4885c0         test rax, rax
+│    ╎  └─< 0x00401381      74c2           je 0x401345
+│    ╎      0x00401383      4489e2         mov edx, r12d               ; size_t nbyte
+│    ╎      0x00401386      4889c6         mov rsi, rax                ; void *buf
+│    ╎      0x00401389      4183c8ff       or r8d, 0xffffffff          ; -1
+│    ╎      0x0040138d      31ff           xor edi, edi                ; int fildes
+│    ╎      0x0040138f      488d0dee0d..   lea rcx, str.ERROR:_Failed_to_read_data_ ; 0x402184 ; "ERROR: Failed to read data!" ; int64_t arg4
+│    ╎      0x00401396      e880020000     call sym.read_exact
+│    ╎      0x0040139b      0fb7542416     movzx edx, word [var_16h]
+│    ╎      0x004013a0      480faf54240e   imul rdx, qword [size]
+│    ╎      0x004013a6      31c0           xor eax, eax
+│    ╎      ; CODE XREF from main @ 0x4013bb(x)
+│    ╎  ┌─> 0x004013a8      4839c2         cmp rdx, rax
+│    ╎ ┌──< 0x004013ab      742f           je 0x4013dc
+│    ╎ │╎   0x004013ad      0fb60c03       movzx ecx, byte [rbx + rax]
+│    ╎ │╎   0x004013b1      48ffc0         inc rax
+│    ╎ │╎   0x004013b4      8d71e0         lea esi, [rcx - 0x20]
+│    ╎ │╎   0x004013b7      4080fe5e       cmp sil, 0x5e               ; '^' ; 94
+│    ╎ │└─< 0x004013bb      76eb           jbe 0x4013a8
+│    ╎ │    0x004013bd      488b3d7c2c..   mov rdi, qword [obj.stderr] ; obj.stderr__GLIBC_2.2.5
+│    ╎ │                                                               ; [0x404040:8]=0
+│    ╎ │    0x004013c4      488d15d50d..   lea rdx, str.ERROR:_Invalid_character_0x_x_in_the_image_data__n ; str.ERROR:_Invalid_character_0x_x_in_the_image_data__n
+│    ╎ │                                                               ; 0x4021a0 ; "ERROR: Invalid character 0x%x in the image data!\n"
+│    ╎ │    0x004013cb      be01000000     mov esi, 1
+│    ╎ │    0x004013d0      31c0           xor eax, eax
+│    ╎ │    0x004013d2      e859feffff     call sym.imp.__fprintf_chk
+│    └────< 0x004013d7      e96effffff     jmp 0x40134a
+│      │    ; CODE XREF from main @ 0x4013ab(x)
+│      └──> 0x004013dc      4889de         mov rsi, rbx                ; int64_t arg2
+│           0x004013df      4889ef         mov rdi, rbp                ; int64_t arg1
+│           0x004013e2      e884020000     call sym.display
+│           0x004013e7      0fb74c2416     movzx ecx, word [var_16h]
+│           0x004013ec      31c0           xor eax, eax
+│           0x004013ee      31d2           xor edx, edx
+│           0x004013f0      480faf4c240e   imul rcx, qword [size]
+│           ; CODE XREF from main @ 0x401406(x)
+│       ┌─> 0x004013f6      4839c1         cmp rcx, rax
+│      ┌──< 0x004013f9      740d           je 0x401408
+│      │╎   0x004013fb      803c0320       cmp byte [rbx + rax], 0x20
+│     ┌───< 0x004013ff      7402           je 0x401403
+│     ││╎   0x00401401      ffc2           inc edx
+│     ││╎   ; CODE XREF from main @ 0x4013ff(x)
+│     └───> 0x00401403      48ffc0         inc rax
+│      │└─< 0x00401406      ebee           jmp 0x4013f6
+│      │    ; CODE XREF from main @ 0x4013f9(x)
+│      └──> 0x00401408      81fa13010000   cmp edx, 0x113              ; 275
+│       ┌─< 0x0040140e      7507           jne 0x401417
+│       │   0x00401410      31c0           xor eax, eax
+│       │   0x00401412      e80f010000     call sym.win
+```
+
+Took some time to figure out, but it was kind of simple. For some reason I thought this was big endian, and for some reason I thought there was padding. Going through `gdb` made me realize
+it was plain simple, just `width` was a `qword` and `height` was `word`.
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+# width * height must be 275
+width = 25
+height = 11
+
+payload = b""
+payload += b"cIMG"  # 4 bytes
+payload += struct.pack("<B", 1) # version byte, 5 bytes
+payload += struct.pack("<Q", width) # height qword
+payload += struct.pack("<H", height) # height qword
+payload += b"\x61" * (width * height) # width x height bytes that are 0x20 <= b <= 0x7e
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~behold-the-cimg-c:~$ python3 cimg_payload.py | /challenge/cimg
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+pwn.college{oG93ot_fiZSjbQSqQVwVJ2iB2L0.0lNxUjNxwyMyITOyEzW}
+```
+
+## Behold the cIMG! (x86)
+
+```
+│     │ └─> 0x00401308      4183c8ff       or r8d, 0xffffffff          ; -1
+│     │     0x0040130c      31ff           xor edi, edi                ; int fildes
+│     │     0x0040130e      488d0de30d..   lea rcx, str.ERROR:_Failed_to_read_header_ ; 0x4020f8 ; "ERROR: Failed to read header!" ; int64_t arg4
+│     │     0x00401315      4889ee         mov rsi, rbp                ; void *buf
+│     │     0x00401318      ba0f000000     mov edx, 0xf                ; 15 ; size_t nbyte
+│     │     0x0040131d      e8f9020000     call sym.read_exact
+│     │     0x00401322      807c240963     cmp byte [var_9h], 0x63     ; 'c'
+│     │ ┌─< 0x00401327      7515           jne 0x40133e
+│     │ │   0x00401329      807c240a49     cmp byte [var_ah], 0x49     ; 'I'
+│     │┌──< 0x0040132e      750e           jne 0x40133e
+│     │││   0x00401330      807c240b4d     cmp byte [var_bh], 0x4d     ; 'M'
+│    ┌────< 0x00401335      7507           jne 0x40133e
+│    ││││   0x00401337      807c240c47     cmp byte [var_ch], 0x47     ; 'G'
+│   ┌─────< 0x0040133c      7414           je 0x401352
+│   │││││   ; CODE XREFS from main @ 0x401327(x), 0x40132e(x), 0x401335(x)
+│   │└─└└─> 0x0040133e      488d3dd10d..   lea rdi, str.ERROR:_Invalid_magic_number_ ; 0x402116 ; "ERROR: Invalid magic number!"
+│   │ │     ; CODE XREFS from main @ 0x40135e(x), 0x401381(x)
+│   │ │┌┌─> 0x00401345      e816feffff     call sym.imp.puts           ; int puts(const char *s)
+│   │ │╎╎   ; CODE XREFS from main @ 0x4012f1(x), 0x4013d7(x)
+│   │┌└───> 0x0040134a      83cfff         or edi, 0xffffffff          ; -1
+│   │╎ ╎╎   0x0040134d      e8cefeffff     call sym.imp.exit           ; void exit(int status)
+│   │╎ ╎╎   ; CODE XREF from main @ 0x40133c(x)
+│   └─────> 0x00401352      807c240d01     cmp byte [var_dh], 1
+│    ╎ ╎╎   0x00401357      488d3dd50d..   lea rdi, str.ERROR:_Unsupported_version_ ; 0x402133 ; "ERROR: Unsupported version!"
+│    ╎ └──< 0x0040135e      75e5           jne 0x401345
+│    ╎  ╎   0x00401360      440fb7642416   movzx r12d, word [var_16h]
+│    ╎  ╎   0x00401366      4c0faf64240e   imul r12, qword [size]
+│    ╎  ╎   0x0040136c      4c89e7         mov rdi, r12                ; size_t size
+│    ╎  ╎   0x0040136f      e86cfeffff     call sym.imp.malloc         ;  void *malloc(size_t size)
+│    ╎  ╎   0x00401374      488d3dd40d..   lea rdi, str.ERROR:_Failed_to_allocate_memory_for_the_image_data_ ; 0x40214f ; "ERROR: Failed to allocate memory for the image data!"
+│    ╎  ╎   0x0040137b      4889c3         mov rbx, rax
+│    ╎  ╎   0x0040137e      4885c0         test rax, rax
+│    ╎  └─< 0x00401381      74c2           je 0x401345
+│    ╎      0x00401383      4489e2         mov edx, r12d               ; size_t nbyte
+│    ╎      0x00401386      4889c6         mov rsi, rax                ; void *buf
+│    ╎      0x00401389      4183c8ff       or r8d, 0xffffffff          ; -1
+│    ╎      0x0040138d      31ff           xor edi, edi                ; int fildes
+│    ╎      0x0040138f      488d0dee0d..   lea rcx, str.ERROR:_Failed_to_read_data_ ; 0x402184 ; "ERROR: Failed to read data!" ; int64_t arg4
+│    ╎      0x00401396      e880020000     call sym.read_exact
+│    ╎      0x0040139b      0fb7542416     movzx edx, word [var_16h]
+│    ╎      0x004013a0      480faf54240e   imul rdx, qword [size]
+│    ╎      0x004013a6      31c0           xor eax, eax
+│    ╎      ; CODE XREF from main @ 0x4013bb(x)
+│    ╎  ┌─> 0x004013a8      4839c2         cmp rdx, rax
+│    ╎ ┌──< 0x004013ab      742f           je 0x4013dc
+│    ╎ │╎   0x004013ad      0fb60c03       movzx ecx, byte [rbx + rax]
+│    ╎ │╎   0x004013b1      48ffc0         inc rax
+│    ╎ │╎   0x004013b4      8d71e0         lea esi, [rcx - 0x20]
+│    ╎ │╎   0x004013b7      4080fe5e       cmp sil, 0x5e               ; '^' ; 94
+│    ╎ │└─< 0x004013bb      76eb           jbe 0x4013a8
+│    ╎ │    0x004013bd      488b3d7c2c..   mov rdi, qword [obj.stderr] ; obj.stderr__GLIBC_2.2.5
+│    ╎ │                                                               ; [0x404040:8]=0
+│    ╎ │    0x004013c4      488d15d50d..   lea rdx, str.ERROR:_Invalid_character_0x_x_in_the_image_data__n ; str.ERROR:_Invalid_character_0x_x_in_the_image_data__n
+│    ╎ │                                                               ; 0x4021a0 ; "ERROR: Invalid character 0x%x in the image data!\n"
+│    ╎ │    0x004013cb      be01000000     mov esi, 1
+│    ╎ │    0x004013d0      31c0           xor eax, eax
+│    ╎ │    0x004013d2      e859feffff     call sym.imp.__fprintf_chk
+│    └────< 0x004013d7      e96effffff     jmp 0x40134a
+│      │    ; CODE XREF from main @ 0x4013ab(x)
+│      └──> 0x004013dc      4889de         mov rsi, rbx                ; int64_t arg2
+│           0x004013df      4889ef         mov rdi, rbp                ; int64_t arg1
+│           0x004013e2      e884020000     call sym.display
+│           0x004013e7      0fb74c2416     movzx ecx, word [var_16h]
+│           0x004013ec      31c0           xor eax, eax
+│           0x004013ee      31d2           xor edx, edx
+│           0x004013f0      480faf4c240e   imul rcx, qword [size]
+│           ; CODE XREF from main @ 0x401406(x)
+│       ┌─> 0x004013f6      4839c1         cmp rcx, rax
+│      ┌──< 0x004013f9      740d           je 0x401408
+│      │╎   0x004013fb      803c0320       cmp byte [rbx + rax], 0x20
+│     ┌───< 0x004013ff      7402           je 0x401403
+│     ││╎   0x00401401      ffc2           inc edx
+│     ││╎   ; CODE XREF from main @ 0x4013ff(x)
+│     └───> 0x00401403      48ffc0         inc rax
+│      │└─< 0x00401406      ebee           jmp 0x4013f6
+│      │    ; CODE XREF from main @ 0x4013f9(x)
+│      └──> 0x00401408      81fa13010000   cmp edx, 0x113              ; 275
+│       ┌─< 0x0040140e      7507           jne 0x401417
+│       │   0x00401410      31c0           xor eax, eax
+│       │   0x00401412      e80f010000     call sym.win
+```
+
+Exactly the same solution works here again!
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+# width * height must be 275
+width = 25
+height = 11
+
+payload = b""
+payload += b"cIMG"  # 4 bytes
+payload += struct.pack("<B", 1) # version byte, 5 bytes
+payload += struct.pack("<Q", width) # height qword
+payload += struct.pack("<H", height) # height qword
+payload += b"\x61" * (width * height) # width x height bytes that are 0x20 <= b <= 0x7e
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~behold-the-cimg-x86:~$ python3 cimg_payload.py | /challenge/cimg
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaa
+pwn.college{kvWO4uDtMv7Gm_3a-ER9PE4ppu-.0VNwMDMxwyMyITOyEzW}
+```
+
+## A Basic cIMG (Python)
+
+```python
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import os
+import sys
+from collections import namedtuple
+
+Pixel = namedtuple("Pixel", ["r", "g", "b", "ascii"])
+
+
+def main():
+    if len(sys.argv) >= 2:
+        path = sys.argv[1]
+        assert path.endswith(".cimg"), "ERROR: file has incorrect extension"
+        file = open(path, "rb")
+    else:
+        file = sys.stdin.buffer
+
+    header = file.read1(16)
+    assert len(header) == 16, "ERROR: Failed to read header!"
+
+    assert header[:4] == b"cIMG", "ERROR: Invalid magic number!"
+
+    assert int.from_bytes(header[4:12], "little") == 2, "ERROR: Invalid version!"
+
+    width = int.from_bytes(header[12:14], "little")
+    assert width == 46, "ERROR: Incorrect width!"
+
+    height = int.from_bytes(header[14:16], "little")
+    assert height == 23, "ERROR: Incorrect height!"
+
+    data = file.read1(width * height * 4)
+    assert len(data) == width * height * 4, "ERROR: Failed to read data!"
+
+    pixels = [Pixel(*data[i : i + 4]) for i in range(0, len(data), 4)]
+
+    invalid_character = next((pixel.ascii for pixel in pixels if not (0x20 <= pixel.ascii <= 0x7E)), None)
+    assert invalid_character is None, f"ERROR: Invalid character {invalid_character:#04x} in data!"
+
+    ansii_escape = lambda pixel: f"\x1b[38;2;{pixel.r:03};{pixel.g:03};{pixel.b:03}m{chr(pixel.ascii)}\x1b[0m"
+    framebuffer = "".join(
+        "".join(ansii_escape(pixel) for pixel in pixels[row_start : row_start + width])
+        + ansii_escape(Pixel(0, 0, 0, ord("\n")))
+        for row_start in range(0, len(pixels), width)
+    )
+    print(framebuffer)
+
+    nonspace_count = sum(1 for pixel in pixels if chr(pixel.ascii) != " ")
+    if nonspace_count != 1058:
+        return
+
+    asu_maroon = (0x8C, 0x1D, 0x40)
+    if any((pixel.r, pixel.g, pixel.b) != asu_maroon for pixel in pixels):
+        return
+
+    with open("/flag", "r") as f:
+        flag = f.read()
+        print(flag)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except AssertionError as e:
+        print(e, file=sys.stderr)
+        sys.exit(-1)
+```
+
+We need to put the exact `RGB = #8c1d40`.
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+# width * height must be 275
+width = 46
+height = 23
+
+payload = b""
+payload += b"cIMG"  # 4 bytes
+payload += struct.pack("<Q", 2) # version qword, 12 bytes
+payload += struct.pack("<H", width) # width word
+payload += struct.pack("<H", height) # height word
+payload += b"\x8c\x1d\x40\x61" * (width * height) # 4 x width x height bytes
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~a-basic-cimg-python:~$ python3 cimg_payload.py | /challenge/cimg 
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+pwn.college{Yd7u1U5-cMPEWf5LHZjnNFIwrzv.01NxUjNxwyMyITOyEzW}
+```
+
+## A Basic cIMG (C)
+
+Just have to change some sizes, but it is generally the same.
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+# width * height must be 275
+width = 0x27
+height = 0x15
+
+payload = b""
+payload += b"cIMG"  # 4 bytes
+payload += struct.pack("<B", 2) # version qword, 12 bytes
+payload += struct.pack("<B", width) # width byte
+payload += struct.pack("<I", height) # height dword
+payload += b"\x8c\x1d\x40\x61" * (width * height) # 4 x width x height bytes
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~a-basic-cimg-c:~$ python3 cimg_payload.py | /challenge/cimg
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+pwn.college{gE7SLz8LudC1wr59wK1usZc3XvV.0FOxUjNxwyMyITOyEzW}
+```
+
+##  A Basic cIMG (x86)
+
+Just have to change some sizes again, but it is generally the same.
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+# width * height must be 275
+width = 0x2a
+height = 0x18
+
+payload = b""
+payload += b"cIMG"  # 4 bytes
+payload += struct.pack("<H", 2) # version qword, 12 bytes
+payload += struct.pack("<I", width) # width byte
+payload += struct.pack("<B", height) # height dword
+payload += b"\x8c\x1d\x40\x61" * (width * height) # 4 x width x height bytes
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~a-basic-cimg-x86:~$ python3 cimg_payload.py | /challenge/cimg 
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+pwn.college{cs2W8SvYLqzP2Klopp5yK7JyhE7.0lNwMDMxwyMyITOyEzW}
+```
+
+## Internal State Mini (C)
+
+We need to investigate this part:
+```
+│      └──> 0x004013ff      4889ee         mov rsi, rbp                ; int64_t arg2
+│           0x00401402      4c89e7         mov rdi, r12                ; int64_t arg1
+│           0x00401405      4c8d25142c..   lea r12, obj.desired_output ; 0x404020
+│           0x0040140c      31db           xor ebx, ebx
+│           0x0040140e      e8b8020000     call sym.display
+│           0x00401413      448b6c2408     mov r13d, dword [var_8h]
+│           0x00401418      4c8b742410     mov r14, qword [var_10h]
+│           0x0040141d      4183fd04       cmp r13d, 4                 ; 4
+│           0x00401421      0f94c3         sete bl
+│           0x00401424      31ed           xor ebp, ebp
+│           0x00401426      4531ff         xor r15d, r15d
+│           ; CODE XREF from main @ 0x40146a(x)
+│       ┌─> 0x00401429      83fd04         cmp ebp, 4                  ; 4
+│      ┌──< 0x0040142c      743e           je 0x40146c
+│      │╎   0x0040142e      4139ed         cmp r13d, ebp
+│     ┌───< 0x00401431      7639           jbe 0x40146c
+│     ││╎   0x00401433      486bfd18       imul rdi, rbp, 0x18
+│     ││╎   0x00401437      418a443e13     mov al, byte [r14 + rdi + 0x13]
+│     ││╎   0x0040143c      413a442413     cmp al, byte [r12 + 0x13]
+│     ││╎   0x00401441      410f45df       cmovne ebx, r15d
+│     ││╎   0x00401445      3c20           cmp al, 0x20                ; 32
+│    ┌────< 0x00401447      741a           je 0x401463
+│    │││╎   0x00401449      3c0a           cmp al, 0xa                 ; 10
+│   ┌─────< 0x0040144b      7416           je 0x401463
+│   ││││╎   0x0040144d      4c01f7         add rdi, r14                ; const void *s1
+│   ││││╎   0x00401450      ba18000000     mov edx, 0x18               ; 24 ; size_t n
+│   ││││╎   0x00401455      4c89e6         mov rsi, r12                ; const void *s2
+│   ││││╎   0x00401458      e883fdffff     call sym.imp.memcmp         ; int memcmp(const void *s1, const void *s2, size_t n)
+│   ││││╎   0x0040145d      85c0           test eax, eax
+│   ││││╎   0x0040145f      410f45df       cmovne ebx, r15d
+│   ││││╎   ; CODE XREFS from main @ 0x401447(x), 0x40144b(x)
+│   └└────> 0x00401463      48ffc5         inc rbp
+│     ││╎   0x00401466      4983c418       add r12, 0x18               ; 24
+│     ││└─< 0x0040146a      ebbd           jmp 0x401429
+│     ││    ; CODE XREFS from main @ 0x40142c(x), 0x401431(x)
+│     └└──> 0x0040146c      85db           test ebx, ebx
+│       ┌─< 0x0040146e      7407           je 0x401477
+│       │   0x00401470      31c0           xor eax, eax
+│       │   0x00401472      e80f010000     call sym.win
+```
+
+```python
+# cimg_payload.py
+import sys
+import struct
+
+# width * height must be 275
+width = 0x2a
+height = 0x18
+
+# header has 8 bytes
+
+payload = b""
+payload += b"cIMG"  # 4 bytes
+payload += struct.pack("<H", 2) # version word, 6 bytes
+payload += struct.pack("<B", width) # width byte, 7 bytes
+payload += struct.pack("<B", height) # height byte, 8 bytes
+payload += struct.pack("<I", r13) # height byte, 8 bytes
+payload += struct.pack("<I", r14) # height byte, 8 bytes
+payload += b"\x20\x0a\x18\x61" * (width * height) # 4 x width x height bytes
+
+sys.stdout.buffer.write(payload)
+```
