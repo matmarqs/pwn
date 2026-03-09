@@ -389,4 +389,416 @@ hacker@reverse-engineering~reading-endianness-x86:~$ echo -n '{Onr' | /challenge
 pwn.college{sGY3qCBR2rdpoMzsVD4Qr874PiB.0VMwMDMxwyMyITOyEzW}
 ```
 
+## Version Information (Python)
 
+```
+hacker@reverse-engineering~version-information-python:~$ file /challenge/cimg 
+/challenge/cimg: setuid Python script, ASCII text executable
+hacker@reverse-engineering~version-information-python:~$ cat /challenge/cimg 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import os
+import sys
+from collections import namedtuple
+
+Pixel = namedtuple("Pixel", ["ascii"])
+
+
+def main():
+    if len(sys.argv) >= 2:
+        path = sys.argv[1]
+        assert path.endswith(".cimg"), "ERROR: file has incorrect extension"
+        file = open(path, "rb")
+    else:
+        file = sys.stdin.buffer
+
+    header = file.read1(6)
+    assert len(header) == 6, "ERROR: Failed to read header!"
+
+    assert header[:4] == b"<0%r", "ERROR: Invalid magic number!"
+
+    assert int.from_bytes(header[4:6], "little") == 125, "ERROR: Invalid version!"
+
+    with open("/flag", "r") as f:
+        flag = f.read()
+        print(flag)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except AssertionError as e:
+        print(e, file=sys.stderr)
+        sys.exit(-1)
+```
+
+```
+hacker@reverse-engineering~version-information-python:~$ vim make_byte_file.py
+hacker@reverse-engineering~version-information-python:~$ python3 make_byte_file.py 
+hacker@reverse-engineering~version-information-python:~$ xxd byte_file.bin 
+00000000: 3c30 2572 7d00                           <0%r}.
+hacker@reverse-engineering~version-information-python:~$ cat make_byte_file.py 
+import struct
+
+with open("byte_file.bin", "wb") as f:
+        f.write(b"<0%r")
+        f.write(struct.pack('<h', 125))
+hacker@reverse-engineering~version-information-python:~$ /challenge/cimg byte_file.bin 
+ERROR: file has incorrect extension
+hacker@reverse-engineering~version-information-python:~$ mv byte_file.bin byte_file.cimg
+hacker@reverse-engineering~version-information-python:~$ /challenge/cimg byte_file.cimg 
+pwn.college{0PUF2VbHlpJPoKoyWKq2HZeHBQD.0VOwUjNxwyMyITOyEzW}
+```
+
+## Version Information (C)
+
+```
+[0x00401244]> pdf
+            ; ICOD XREF from entry0 @ 0x401361(r)
+┌ 250: int main (int argc, char **s1);
+│ `- args(rdi, rsi) vars(6:sp[0x10..0x15])
+│           0x00401244      f30f1efa       endbr64
+│           0x00401248      55             push rbp
+│           0x00401249      4189f8         mov r8d, edi                ; argc
+│           0x0040124c      b905000000     mov ecx, 5
+│           0x00401251      4883ec10       sub rsp, 0x10
+│           0x00401255      64488b0425..   mov rax, qword fs:[0x28]
+│           0x0040125e      4889442408     mov qword [canary], rax
+│           0x00401263      31c0           xor eax, eax
+│           0x00401265      488d7c2403     lea rdi, [var_3h]
+│           0x0040126a      41ffc8         dec r8d
+│           0x0040126d      f3aa           rep stosb byte [rdi], al
+│       ┌─< 0x0040126f      7e4f           jle 0x4012c0
+│       │   0x00401271      488b6e08       mov rbp, qword [rsi + 8]    ; argv
+│       │   0x00401275      4883c9ff       or rcx, 0xffffffffffffffff
+│       │   0x00401279      488d35530e..   lea rsi, str..cimg          ; 0x4020d3 ; ".cimg" ; const char *s2
+│       │   0x00401280      4889ef         mov rdi, rbp
+│       │   0x00401283      f2ae           repne scasb al, byte [rdi]
+│       │   0x00401285      48f7d1         not rcx
+│       │   0x00401288      488d7c0dfa     lea rdi, [rbp + rcx - 6]    ; const char *s1
+│       │   0x0040128d      e80effffff     call sym.imp.strcmp         ; int strcmp(const char *s1, const char *s2)
+│       │   0x00401292      85c0           test eax, eax
+│      ┌──< 0x00401294      7415           je 0x4012ab
+│      ││   0x00401296      488d353c0e..   lea rsi, str.ERROR:_Invalid_file_extension_ ; 0x4020d9 ; "ERROR: Invalid file extension!"
+│      ││   0x0040129d      bf01000000     mov edi, 1
+│      ││   0x004012a2      31c0           xor eax, eax
+│      ││   0x004012a4      e807ffffff     call sym.imp.__printf_chk
+│     ┌───< 0x004012a9      eb59           jmp 0x401304
+│     │││   ; CODE XREF from main @ 0x401294(x)
+│     │└──> 0x004012ab      31f6           xor esi, esi                ; int oflag
+│     │ │   0x004012ad      4889ef         mov rdi, rbp                ; const char *path
+│     │ │   0x004012b0      31c0           xor eax, eax
+│     │ │   0x004012b2      e819ffffff     call sym.imp.open           ; int open(const char *path, int oflag)
+│     │ │   0x004012b7      31f6           xor esi, esi
+│     │ │   0x004012b9      89c7           mov edi, eax
+│     │ │   0x004012bb      e8a0feffff     call sym.imp.dup2
+│     │ │   ; CODE XREF from main @ 0x40126f(x)
+│     │ └─> 0x004012c0      4183c8ff       or r8d, 0xffffffff          ; -1
+│     │     0x004012c4      31ff           xor edi, edi                ; int fildes
+│     │     0x004012c6      488d742403     lea rsi, [var_3h]           ; void *buf
+│     │     0x004012cb      ba05000000     mov edx, 5                  ; size_t nbyte
+│     │     0x004012d0      488d0d210e..   lea rcx, str.ERROR:_Failed_to_read_header_ ; 0x4020f8 ; "ERROR: Failed to read header!" ; int64_t arg4
+│     │     0x004012d7      e83f020000     call sym.read_exact
+│     │     0x004012dc      807c240363     cmp byte [var_3h], 0x63     ; 'c'
+│     │ ┌─< 0x004012e1      7515           jne 0x4012f8
+│     │ │   0x004012e3      807c24046e     cmp byte [var_4h], 0x6e     ; 'n'
+│     │┌──< 0x004012e8      750e           jne 0x4012f8
+│     │││   0x004012ea      807c24056d     cmp byte [var_5h], 0x6d     ; 'm'
+│    ┌────< 0x004012ef      7507           jne 0x4012f8
+│    ││││   0x004012f1      807c240667     cmp byte [var_6h], 0x67     ; 'g'
+│   ┌─────< 0x004012f6      7414           je 0x40130c
+│   │││││   ; CODE XREFS from main @ 0x4012e1(x), 0x4012e8(x), 0x4012ef(x)
+│   │└─└└─> 0x004012f8      488d3d170e..   lea rdi, str.ERROR:_Invalid_magic_number_ ; 0x402116 ; "ERROR: Invalid magic number!"
+│   │ │     ; CODE XREF from main @ 0x401318(x)
+│   │ │ ┌─> 0x004012ff      e82cfeffff     call sym.imp.puts           ; int puts(const char *s)
+│   │ │ ╎   ; CODE XREF from main @ 0x4012a9(x)
+│   │ └───> 0x00401304      83cfff         or edi, 0xffffffff          ; -1
+│   │   ╎   0x00401307      e8d4feffff     call sym.imp.exit           ; void exit(int status)
+│   │   ╎   ; CODE XREF from main @ 0x4012f6(x)
+│   └─────> 0x0040130c      807c240756     cmp byte [var_7h], 0x56     ; 'V'
+│       ╎   0x00401311      488d3d1b0e..   lea rdi, str.ERROR:_Unsupported_version_ ; 0x402133 ; "ERROR: Unsupported version!"
+│       └─< 0x00401318      75e5           jne 0x4012ff
+│           0x0040131a      31c0           xor eax, eax
+│           0x0040131c      e805010000     call sym.win
+│           0x00401321      488b442408     mov rax, qword [canary]
+│           0x00401326      6448330425..   xor rax, qword fs:[0x28]
+│       ┌─< 0x0040132f      7405           je 0x401336
+│       │   0x00401331      e81afeffff     call sym.imp.__stack_chk_fail ; void __stack_chk_fail(void)
+│       │   ; CODE XREF from main @ 0x40132f(x)
+│       └─> 0x00401336      4883c410       add rsp, 0x10
+│           0x0040133a      31c0           xor eax, eax
+│           0x0040133c      5d             pop rbp
+└           0x0040133d      c3             ret
+```
+
+Basically, it reads `5` bytes from the file. They must be `cnmgV`
+
+```
+hacker@reverse-engineering~version-information-c:~$ echo -n 'cnmgV' | /challenge/cimg
+pwn.college{4BDOgEHqP2OrQy8VfVAmfDqLhxm.0FMxUjNxwyMyITOyEzW}
+```
+
+## Version Information (x86)
+
+```
+│     │ └─> 0x004012c0      4183c8ff       or r8d, 0xffffffff          ; -1
+│     │     0x004012c4      31ff           xor edi, edi                ; int fildes
+│     │     0x004012c6      488d742402     lea rsi, [var_2h]           ; void *buf
+│     │     0x004012cb      ba06000000     mov edx, 6                  ; size_t nbyte
+│     │     0x004012d0      488d0d210e..   lea rcx, str.ERROR:_Failed_to_read_header_ ; 0x4020f8 ; "ERROR: Failed to read header!" ; int64_t arg4
+│     │     0x004012d7      e83f020000     call sym.read_exact
+│     │     0x004012dc      807c24025b     cmp byte [var_2h], 0x5b     ; '['
+│     │ ┌─< 0x004012e1      7515           jne 0x4012f8
+│     │ │   0x004012e3      807c24036e     cmp byte [var_3h], 0x6e     ; 'n'
+│     │┌──< 0x004012e8      750e           jne 0x4012f8
+│     │││   0x004012ea      807c24046e     cmp byte [var_4h], 0x6e     ; 'n'
+│    ┌────< 0x004012ef      7507           jne 0x4012f8
+│    ││││   0x004012f1      807c240552     cmp byte [var_5h], 0x52     ; 'R'
+│   ┌─────< 0x004012f6      7414           je 0x40130c
+│   │││││   ; CODE XREFS from main @ 0x4012e1(x), 0x4012e8(x), 0x4012ef(x)
+│   │└─└└─> 0x004012f8      488d3d170e..   lea rdi, str.ERROR:_Invalid_magic_number_ ; 0x402116 ; "ERROR: Invalid magic number!"
+│   │ │     ; CODE XREF from main @ 0x40131a(x)
+│   │ │ ┌─> 0x004012ff      e82cfeffff     call sym.imp.puts           ; int puts(const char *s)
+│   │ │ ╎   ; CODE XREF from main @ 0x4012a9(x)
+│   │ └───> 0x00401304      83cfff         or edi, 0xffffffff          ; -1
+│   │   ╎   0x00401307      e8d4feffff     call sym.imp.exit           ; void exit(int status)
+│   │   ╎   ; CODE XREF from main @ 0x4012f6(x)
+│   └─────> 0x0040130c      66817c2406..   cmp word [var_6h], 0xaa
+│       ╎   0x00401313      488d3d190e..   lea rdi, str.ERROR:_Unsupported_version_ ; 0x402133 ; "ERROR: Unsupported version!"
+│       └─< 0x0040131a      75e3           jne 0x4012ff
+```
+
+```
+hacker@reverse-engineering~version-information-x86:~$ echo -ne '[nnR\xaa\x00' | /challenge/cimg 
+pwn.college{k2N0ZoIaBuhv7hzE7FoSvNiS1__.0lMwMDMxwyMyITOyEzW}
+```
+
+## Metadata and Data (Python)
+
+```
+hacker@reverse-engineering~metadata-and-data-python:~$ cat /challenge/cimg 
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import os
+import sys
+from collections import namedtuple
+
+Pixel = namedtuple("Pixel", ["ascii"])
+
+
+def main():
+    if len(sys.argv) >= 2:
+        path = sys.argv[1]
+        assert path.endswith(".cimg"), "ERROR: file has incorrect extension"
+        file = open(path, "rb")
+    else:
+        file = sys.stdin.buffer
+
+    header = file.read1(20)
+    assert len(header) == 20, "ERROR: Failed to read header!"
+
+    assert header[:4] == b"{MAG", "ERROR: Invalid magic number!"
+
+    assert int.from_bytes(header[4:12], "little") == 1, "ERROR: Invalid version!"
+
+    width = int.from_bytes(header[12:16], "little")
+    assert width == 79, "ERROR: Incorrect width!"
+
+    height = int.from_bytes(header[16:20], "little")
+    assert height == 24, "ERROR: Incorrect height!"
+
+    data = file.read1(width * height)
+    assert len(data) == width * height, "ERROR: Failed to read data!"
+
+    pixels = [Pixel(character) for character in data]
+
+    with open("/flag", "r") as f:
+        flag = f.read()
+        print(flag)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except AssertionError as e:
+        print(e, file=sys.stderr)
+        sys.exit(-1)
+```
+
+We first write the magic bytes `{MAG`, then 64-bit `0x0000000000000001`, then ints `79 = 0x4f000000` and `24 = 0x18000000`, then we need `79 * 24` bytes.
+
+```
+hacker@reverse-engineering~metadata-and-data-python:~$ python3 -c "import sys; sys.stdout.buffer.write(b'{MAG\x01\x00\x00\x00\x00\x00\x00\x00\x4f\x00\x00\x00\x18\x00\x00\x00' + b'\x00'*(79*24))" | /challenge/cimg 
+pwn.college{MW2upS0HVr7G_CD_dAQ7bQrJWZp.0VMxUjNxwyMyITOyEzW}
+```
+
+## Metadata and Data (C)
+
+```
+│     │ └─> 0x004012e0      4183c8ff       or r8d, 0xffffffff          ; -1
+│     │     0x004012e4      31ff           xor edi, edi                ; int fildes
+│     │     0x004012e6      488d74240b     lea rsi, [var_bh]           ; void *buf
+│     │     0x004012eb      ba0d000000     mov edx, 0xd                ; 13 ; size_t nbyte
+│     │     0x004012f0      488d0d010e..   lea rcx, str.ERROR:_Failed_to_read_header_ ; 0x4020f8 ; "ERROR: Failed to read header!" ; int64_t arg4
+│     │     0x004012f7      e88f020000     call sym.read_exact
+│     │     0x004012fc      807c240b28     cmp byte [var_bh], 0x28     ; '('
+│     │ ┌─< 0x00401301      7515           jne 0x401318
+│     │ │   0x00401303      807c240c4d     cmp byte [var_ch], 0x4d     ; 'M'
+│     │┌──< 0x00401308      750e           jne 0x401318
+│     │││   0x0040130a      807c240d36     cmp byte [var_dh], 0x36     ; '6'
+│    ┌────< 0x0040130f      7507           jne 0x401318
+│    ││││   0x00401311      807c240e33     cmp byte [var_eh], 0x33     ; '3'
+│   ┌─────< 0x00401316      7414           je 0x40132c
+│   │││││   ; CODE XREFS from main @ 0x401301(x), 0x401308(x), 0x40130f(x)
+│   │└─└└─> 0x00401318      488d3df70d..   lea rdi, str.ERROR:_Invalid_magic_number_ ; 0x402116 ; "ERROR: Invalid magic number!"
+│   │ │     ; CODE XREFS from main @ 0x401338(x), 0x401346(x), 0x401354(x), 0x40136d(x)
+│  ┌─┌─┌┌─> 0x0040131f      e81cfeffff     call sym.imp.puts           ; int puts(const char *s)
+│  ╎│╎│╎╎   ; CODE XREF from main @ 0x4012c9(x)
+│  ╎│╎└───> 0x00401324      83cfff         or edi, 0xffffffff          ; -1
+│  ╎│╎ ╎╎   0x00401327      e8d4feffff     call sym.imp.exit           ; void exit(int status)
+│  ╎│╎ ╎╎   ; CODE XREF from main @ 0x401316(x)
+│  ╎└─────> 0x0040132c      837c240f01     cmp dword [var_fh], 1
+│  ╎ ╎ ╎╎   0x00401331      488d3dfb0d..   lea rdi, str.ERROR:_Unsupported_version_ ; 0x402133 ; "ERROR: Unsupported version!"
+│  └──────< 0x00401338      75e5           jne 0x40131f
+│    ╎ ╎╎   0x0040133a      807c24133e     cmp byte [var_13h], 0x3e    ; '>'
+│    ╎ ╎╎   0x0040133f      488d3d090e..   lea rdi, str.ERROR:_Incorrect_width_ ; 0x40214f ; "ERROR: Incorrect width!"
+│    └────< 0x00401346      75d7           jne 0x40131f
+│      ╎╎   0x00401348      837c24140e     cmp dword [var_14h], 0xe
+│      ╎╎   0x0040134d      488d3d130e..   lea rdi, str.ERROR:_Incorrect_height_ ; 0x402167 ; "ERROR: Incorrect height!"
+│      └──< 0x00401354      75c9           jne 0x40131f
+│       ╎   0x00401356      bf64030000     mov edi, 0x364              ; 868 ; size_t size
+│       ╎   0x0040135b      e860feffff     call sym.imp.malloc         ;  void *malloc(size_t size)
+│       ╎   0x00401360      488d3d190e..   lea rdi, str.ERROR:_Failed_to_allocate_memory_for_the_image_data_ ; 0x402180 ; "ERROR: Failed to allocate memory for the image data!"
+│       ╎   0x00401367      4889c6         mov rsi, rax
+│       ╎   0x0040136a      4885c0         test rax, rax
+│       └─< 0x0040136d      74b0           je 0x40131f
+│           0x0040136f      4183c8ff       or r8d, 0xffffffff          ; -1
+│           0x00401373      31ff           xor edi, edi                ; int fildes
+│           0x00401375      ba64030000     mov edx, 0x364              ; 868 ; size_t nbyte
+│           0x0040137a      488d0d340e..   lea rcx, str.ERROR:_Failed_to_read_data_ ; 0x4021b5 ; "ERROR: Failed to read data!" ; int64_t arg4
+│           0x00401381      e805020000     call sym.read_exact
+│           0x00401386      31c0           xor eax, eax
+│           0x00401388      e809010000     call sym.win
+```
+
+```
+hacker@reverse-engineering~metadata-and-data-c:~$ python3 -c "import sys; sys.stdout.buffer.write(b'(M63\x01\x00\x00\x00\x3e\x0e\x00\x00\x00' + b'\x00'*(868))" | /challenge/cimg
+pwn.college{sE5rL5NCNt6iUEUyYQmZQhEehBI.0lMxUjNxwyMyITOyEzW}
+```
+
+## Metadata and Data (x86)
+
+```
+│     │ └─> 0x004012e0      4183c8ff       or r8d, 0xffffffff          ; -1
+│     │     0x004012e4      31ff           xor edi, edi                ; int fildes
+│     │     0x004012e6      488d742409     lea rsi, [var_9h]           ; void *buf
+│     │     0x004012eb      ba0f000000     mov edx, 0xf                ; 15 ; size_t nbyte
+│     │     0x004012f0      488d0d010e..   lea rcx, str.ERROR:_Failed_to_read_header_ ; 0x4020f8 ; "ERROR: Failed to read header!" ; int64_t arg4
+│     │     0x004012f7      e88f020000     call sym.read_exact
+│     │     0x004012fc      807c24095b     cmp byte [var_9h], 0x5b     ; '['
+│     │ ┌─< 0x00401301      7515           jne 0x401318
+│     │ │   0x00401303      807c240a4d     cmp byte [var_ah], 0x4d     ; 'M'
+│     │┌──< 0x00401308      750e           jne 0x401318
+│     │││   0x0040130a      807c240b34     cmp byte [var_bh], 0x34     ; '4'
+│    ┌────< 0x0040130f      7507           jne 0x401318
+│    ││││   0x00401311      807c240c47     cmp byte [var_ch], 0x47     ; 'G'
+│   ┌─────< 0x00401316      7414           je 0x40132c
+│   │││││   ; CODE XREFS from main @ 0x401301(x), 0x401308(x), 0x40130f(x)
+│   │└─└└─> 0x00401318      488d3df70d..   lea rdi, str.ERROR:_Invalid_magic_number_ ; 0x402116 ; "ERROR: Invalid magic number!"
+│   │ │     ; CODE XREFS from main @ 0x401339(x), 0x401348(x), 0x401356(x), 0x40136f(x)
+│  ┌─┌─┌┌─> 0x0040131f      e81cfeffff     call sym.imp.puts           ; int puts(const char *s)
+│  ╎│╎│╎╎   ; CODE XREF from main @ 0x4012c9(x)
+│  ╎│╎└───> 0x00401324      83cfff         or edi, 0xffffffff          ; -1
+│  ╎│╎ ╎╎   0x00401327      e8d4feffff     call sym.imp.exit           ; void exit(int status)
+│  ╎│╎ ╎╎   ; CODE XREF from main @ 0x401316(x)
+│  ╎└─────> 0x0040132c      48837c240d01   cmp qword [var_dh], 1
+│  ╎ ╎ ╎╎   0x00401332      488d3dfa0d..   lea rdi, str.ERROR:_Unsupported_version_ ; 0x402133 ; "ERROR: Unsupported version!"
+│  └──────< 0x00401339      75e4           jne 0x40131f
+│    ╎ ╎╎   0x0040133b      66837c241528   cmp word [var_15h], 0x28    ; '('
+│    ╎ ╎╎   0x00401341      488d3d070e..   lea rdi, str.ERROR:_Incorrect_width_ ; 0x40214f ; "ERROR: Incorrect width!"
+│    └────< 0x00401348      75d5           jne 0x40131f
+│      ╎╎   0x0040134a      807c24170e     cmp byte [var_17h], 0xe
+│      ╎╎   0x0040134f      488d3d110e..   lea rdi, str.ERROR:_Incorrect_height_ ; 0x402167 ; "ERROR: Incorrect height!"
+│      └──< 0x00401356      75c7           jne 0x40131f
+│       ╎   0x00401358      bf30020000     mov edi, 0x230              ; 560 ; size_t size
+│       ╎   0x0040135d      e85efeffff     call sym.imp.malloc         ;  void *malloc(size_t size)
+│       ╎   0x00401362      488d3d170e..   lea rdi, str.ERROR:_Failed_to_allocate_memory_for_the_image_data_ ; 0x402180 ; "ERROR: Failed to allocate memory for the image data!"
+│       ╎   0x00401369      4889c6         mov rsi, rax
+│       ╎   0x0040136c      4885c0         test rax, rax
+│       └─< 0x0040136f      74ae           je 0x40131f
+│           0x00401371      4183c8ff       or r8d, 0xffffffff          ; -1
+│           0x00401375      31ff           xor edi, edi                ; int fildes
+│           0x00401377      ba30020000     mov edx, 0x230              ; 560 ; size_t nbyte
+│           0x0040137c      488d0d320e..   lea rcx, str.ERROR:_Failed_to_read_data_ ; 0x4021b5 ; "ERROR: Failed to read data!" ; int64_t arg4
+│           0x00401383      e803020000     call sym.read_exact
+│           0x00401388      31c0           xor eax, eax
+│           0x0040138a      e807010000     call sym.win
+```
+
+```
+hacker@reverse-engineering~metadata-and-data-x86:~$ python3 -c "import sys; sys.stdout.buffer.write(b'[M4G\x01\x00\x00\x00\x00\x00\x00\x00\x28\x00\x0e' + b'\x00'*(0x230))" | /challenge/cimg
+pwn.college{wJ783jOxszoltMHQK3_XvqfxUmF.01MwMDMxwyMyITOyEzW}
+```
+
+## Input Restrictions (Python)
+
+```python
+#!/usr/bin/exec-suid -- /usr/bin/python3 -I
+
+import os
+import sys
+from collections import namedtuple
+
+Pixel = namedtuple("Pixel", ["ascii"])
+
+
+def main():
+    if len(sys.argv) >= 2:
+        path = sys.argv[1]
+        assert path.endswith(".cimg"), "ERROR: file has incorrect extension"
+        file = open(path, "rb")
+    else:
+        file = sys.stdin.buffer
+
+    header = file.read1(10)
+    assert len(header) == 10, "ERROR: Failed to read header!"
+
+    assert header[:4] == b"cIMG", "ERROR: Invalid magic number!"
+
+    assert int.from_bytes(header[4:6], "little") == 1, "ERROR: Invalid version!"
+
+    width = int.from_bytes(header[6:8], "little")
+    assert width == 61, "ERROR: Incorrect width!"
+
+    height = int.from_bytes(header[8:10], "little")
+    assert height == 15, "ERROR: Incorrect height!"
+
+    data = file.read1(width * height)
+    assert len(data) == width * height, "ERROR: Failed to read data!"
+
+    pixels = [Pixel(character) for character in data]
+
+    invalid_character = next((pixel.ascii for pixel in pixels if not (0x20 <= pixel.ascii <= 0x7E)), None)
+    assert invalid_character is None, f"ERROR: Invalid character {invalid_character:#04x} in data!"
+
+    with open("/flag", "r") as f:
+        flag = f.read()
+        print(flag)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except AssertionError as e:
+        print(e, file=sys.stderr)
+        sys.exit(-1)
+```
+
+Just have to put pixels between in the ASCII range, for example all of them equal to `0x20`.
+
+```
+hacker@reverse-engineering~input-restrictions-python:~$ python3 -c "import sys; sys.stdout.buffer.write(b'cIMG\x01\x00\x3d\x00\x0f\x00' + b'\x20'*(61 * 15))" | /challenge/cimg
+pwn.college{wlBjgnFOtwzxSKohFdIkN_n03CK.01MxUjNxwyMyITOyEzW}
+```
+
+## Input Restrictions (C)
