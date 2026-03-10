@@ -1548,6 +1548,8 @@ pwn.college{cs2W8SvYLqzP2Klopp5yK7JyhE7.0lNwMDMxwyMyITOyEzW}
 
 ## Internal State Mini (C)
 
+### Enquanto eu estava confuso
+
 We need to investigate this part:
 ```
 │      └──> 0x004013ff      4889ee         mov rsi, rbp                ; int64_t arg2
@@ -1647,3 +1649,151 @@ desired_output = [0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x31, 0x37, 0x30, 0x
 ```
 
 Given all of this, we need to reverse the `initialize_framebuffer()` and `display()` functions.
+
+
+#### `initialize_framebuffer`
+
+```c
+char *initialize_framebuffer(char *cimg_data) {
+             /*    width    *   length */
+    int size = cimg_data[6] * cimg_data[7]
+    *(int *)(cimg_data + 8) = size;
+    char *ptr_pixels = malloc(24 * size + 1);
+    *(char **)(cimg_data + 16) = ptr_pixels;
+    if (!pixels) {
+        puts("ERROR: Failed to allocate...");
+        exit(-1);
+    }
+    for (int i = 0; i < size; i++) {
+        /* r12 = cimg_data */
+        /* [r12 + 8] = size */
+        /* ebx = i */
+        /* rbp = rsp+0xf */
+
+        /* __snprintf_chk */
+        edx = 1;
+        r9d = 0xff;
+        rdi = rsp+0xf;
+        r8 = "\033[38;2;%03d;%03d;%03dm%c\033[0m";
+        ecx = 0x19;
+        eax = 0;
+        esi = 0x19;
+        /* __snprintf_chk */
+
+        rax = ptr_pixels + i * 0x18;
+        rbx += 1;
+        /* this is a terminal color string */
+        rdx = *(rbp + 0x10); /* this is "55m \033[0m" always */
+        *(ptr_pixels + i*0x18 + 0x10) = rdx;
+    }
+    return cimg_data;
+}
+```
+
+O loop de `initialize_framebuffer` puts the terminal color string
+at every `ptr_pixels[24*i + 16]`. Ou seja, nos últimos 8 bytes de cada
+bloco de 24 bytes. Ainda sobra 16 bytes.
+
+Acredito que `16 = 4*4`, seja para ser um `int` para cada dado
+RGBC que colocamos como input.
+
+O que interessa agora então é a função `display()`.
+
+### Solução real
+
+Se pegarmos o `desired_output` e printarmos no Python, obtemos a string `cIMG` coloridinha.
+
+```python
+>>> desired_output = [0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x31, 0x37, 0x30, 0x3b, 0x30, 0x35, 0x34, 0x3b, 0x31, 0x31, 0x32, 0x6d, 0x63, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x31, 0x36, 0x31, 0x3b, 0x31, 0x32, 0x39, 0x3b, 0x32, 0x30, 0x34, 0x6d, 0x49, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x30, 0x30, 0x31, 0x3b, 0x31, 0x39, 0x35, 0x3b, 0x30, 0x35, 0x33, 0x6d, 0x4d, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x30, 0x36, 0x34, 0x3b, 0x30, 0x34, 0x36, 0x3b, 0x32, 0x32, 0x34, 0x6d, 0x47, 0x1b, 0x5b, 0x30, 0x6d, 0x00, 0x00]
+>>> s2 = ""
+>>> for c in desired_output:
+...     s2 += chr(c)
+...
+>>> print(s2)
+cIMG
+>>> s2
+'\x1b[38;2;170;054;112mc\x1b[0m\x1b[38;2;161;129;204mI\x1b[0m\x1b[38;2;001;195;053mM\x1b[0m\x1b[38;2;064;046;224mG\x1b[0m\x00\x00'
+```
+
+Se fizermos esse payload aqui, obtemos `001;002;003` etc.
+```python
+# cimg_payload.py
+import sys
+import struct
+
+width = 2
+height = 2
+
+# header has 8 bytes
+
+payload = b""
+payload += b"cIMG" # header[0] = 4 bytes
+payload += struct.pack("<H", 2) # header[4] = version word
+payload += struct.pack("<B", width) # header[6] = width byte
+payload += struct.pack("<B", height) # header[7] = height byte
+payload += b"\x01\x02\x03\x63"
+payload += b"\x04\x05\x06\x49"
+payload += b"\x07\x08\x09\x4d"
+payload += b"\x0a\x0b\x0c\x47"
+
+with open("payload.cimg", "wb") as f:
+        f.write(payload)
+#sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~internal-state-mini-c:~$ gdb /challenge/cimg
+Reading symbols from /challenge/cimg...
+(No debugging symbols found in /challenge/cimg)
+(gdb) b *0x401437
+Breakpoint 1 at 0x401437
+(gdb) run ~/payload.cimg 
+Starting program: /challenge/cimg ~/payload.cimg
+cI
+MG
+
+Breakpoint 1, 0x0000000000401437 in main ()
+(gdb) x/s $r14+$rdi
+0x25ef22a0:     "\033[38;2;001;002;003mc\033[0m\033[38;2;004;005;006mI\033[0m\033[38;2;007;008;009mM\033[0m\033[38;2;010;011;012mG\033[0m"
+(gdb) x/s $r12
+0x404020 <desired_output>:      "\033[38;2;170;054;112mc\033[0m\033[38;2;161;129;204mI\033[0m\033[38;2;001;195;053mM\033[0m\033[38;2;064;046;224mG\033[0m"
+```
+
+Ou seja, nosso programa tem que ser exatamente isso aqui para corresponder ao `desired_output`:
+```python
+# cimg_payload.py
+import sys
+import struct
+
+# width * height must be 4, but they can be 2 and 2 for example
+width = 4
+height = 1
+
+desired_output = [0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x31, 0x37, 0x30, 0x3b, 0x30, 0x35, 0x34, 0x3b, 0x31, 0x31, 0x32, 0x6d, 0x63, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x31, 0x36, 0x31, 0x3b, 0x31, 0x32, 0x39, 0x3b, 0x32, 0x30, 0x34, 0x6d, 0x49, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x30, 0x30, 0x31, 0x3b, 0x31, 0x39, 0x35, 0x3b, 0x30, 0x35, 0x33, 0x6d, 0x4d, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x30, 0x36, 0x34, 0x3b, 0x30, 0x34, 0x36, 0x3b, 0x32, 0x32, 0x34, 0x6d, 0x47, 0x1b, 0x5b, 0x30, 0x6d, 0x00, 0x00]
+desired_output_str = "\033[38;2;170;054;112mc\033[0m\033[38;2;161;129;204mI\033[0m\033[38;2;001;195;053mM\033[0m\033[38;2;064;046;224mG\033[0m"
+
+# header has 8 bytes
+
+payload = b""
+payload += b"cIMG" # header[0] = 4 bytes
+payload += struct.pack("<H", 2) # header[4] = version word
+payload += struct.pack("<B", width) # header[6] = width byte
+payload += struct.pack("<B", height) # header[7] = height byte
+payload += b"\xaa\x36\x70\x63"  # 170;054;112
+payload += b"\xa1\x81\xcc\x49"  # 161;129;204
+payload += b"\x01\xc3\x35\x4d"  # 001;195;053
+payload += b"\x40\x2e\xe0\x47"  # 064;046;224
+
+with open("payload.cimg", "wb") as f:
+        f.write(payload)
+
+sys.stdout.buffer.write(payload)
+```
+
+```
+hacker@reverse-engineering~internal-state-mini-c:~$ vim cimg_payload.py 
+hacker@reverse-engineering~internal-state-mini-c:~$ python3 cimg_payload.py 
+hacker@reverse-engineering~internal-state-mini-c:~$ /challenge/cimg payload.cimg 
+cIMG
+pwn.college{IODwacnQffNO2UjsTv98ze6LbMP.0VOxUjNxwyMyITOyEzW}
+```
