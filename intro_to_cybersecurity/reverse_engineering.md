@@ -1557,7 +1557,7 @@ We need to investigate this part:
 │           0x0040140e      e8b8020000     call sym.display
 │           0x00401413      448b6c2408     mov r13d, dword [var_8h]
 │           0x00401418      4c8b742410     mov r14, qword [var_10h]
-│           0x0040141d      4183fd04       cmp r13d, 4                 ; 4
+│           0x0040141d      4183fd04       cmp r13d, 4                 ; 4, width x length must be 4
 │           0x00401421      0f94c3         sete bl
 │           0x00401424      31ed           xor ebp, ebp
 │           0x00401426      4531ff         xor r15d, r15d
@@ -1577,7 +1577,7 @@ We need to investigate this part:
 │   ││││╎   0x0040144d      4c01f7         add rdi, r14                ; const void *s1
 │   ││││╎   0x00401450      ba18000000     mov edx, 0x18               ; 24 ; size_t n
 │   ││││╎   0x00401455      4c89e6         mov rsi, r12                ; const void *s2
-│   ││││╎   0x00401458      e883fdffff     call sym.imp.memcmp         ; int memcmp(const void *s1, const void *s2, size_t n)
+│   ││││╎   0x00401458      e883fdffff     call sym.imp.memcmp         ; int memcmp(const void *s1, const void *s2, size_t n)   ; the two memory areas must be equal
 │   ││││╎   0x0040145d      85c0           test eax, eax
 │   ││││╎   0x0040145f      410f45df       cmovne ebx, r15d
 │   ││││╎   ; CODE XREFS from main @ 0x401447(x), 0x40144b(x)
@@ -1596,20 +1596,54 @@ We need to investigate this part:
 import sys
 import struct
 
-# width * height must be 275
-width = 0x2a
-height = 0x18
+width = 2
+height = 2
 
 # header has 8 bytes
 
 payload = b""
-payload += b"cIMG"  # 4 bytes
-payload += struct.pack("<H", 2) # version word, 6 bytes
-payload += struct.pack("<B", width) # width byte, 7 bytes
-payload += struct.pack("<B", height) # height byte, 8 bytes
-payload += struct.pack("<I", r13) # height byte, 8 bytes
-payload += struct.pack("<I", r14) # height byte, 8 bytes
-payload += b"\x20\x0a\x18\x61" * (width * height) # 4 x width x height bytes
+payload += b"cIMG" # header[0] = 4 bytes
+payload += struct.pack("<H", 2) # header[4] = version word
+payload += struct.pack("<B", width) # header[6] = width byte
+payload += struct.pack("<B", height) # header[7] = height byte
+payload += b"\x20\x0a\x18\x63"
+payload += b"\x20\x0a\x18\x49"
+payload += b"\x20\x0a\x18\x4d"
+payload += b"\x20\x0a\x18\x47"
 
 sys.stdout.buffer.write(payload)
 ```
+
+No começo da função `rsp+0x10 = 0`.
+
+In order for the binary to call `sym.win`, we need `ebx != 0`. (`0x40146c`)
+This `test ebx, ebx` is executed if `ebp == 4` or `r13d <= ebp`. (`0x401429`)
+At `0x4013ff`, we have:
+```
+0x004013ff      4889ee         mov rsi, rbp                ; int64_t arg2
+0x00401402      4c89e7         mov rdi, r12                ; int64_t arg1
+0x00401405      4c8d25142c..   lea r12, obj.desired_output ; 0x404020
+0x0040140c      31db           xor ebx, ebx ; here ebx = 0
+0x0040140e      e8b8020000     call sym.display
+0x00401413      448b6c2408     mov r13d, dword [var_8h] ; r13d is the width * length
+0x00401418      4c8b742410     mov r14, qword [var_10h] ; r14 is the malloc'ed image data
+0x0040141d      4183fd04       cmp r13d, 4                 ; 4
+0x00401421      0f94c3         sete bl  ; if r13 == 4, then ebx = 1
+0x00401424      31ed           xor ebp, ebp ; ebp = 0
+0x00401426      4531ff         xor r15d, r15d   ; r15d = 0
+```
+
+We can put `r13 = 0`, then `ebx = 0`.
+
+A função `initialize_framebuffer` é responsável por setar `(int) rsp+0x8 = width * length`
+`(byte *) rsp+0x16 = malloc'ed buffer` (com size `0x18 * (width*height) + 1`)
+
+No começo do `main`, `r12` é igual ao `rsp`, que é o header do arquivo cIMG.
+
+Basically, we must set `width * height = 4` and also make sure our processed input to be equal to `desired_output` at `0x404020`
+
+```python
+desired_output = [0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x31, 0x37, 0x30, 0x3b, 0x30, 0x35, 0x34, 0x3b, 0x31, 0x31, 0x32, 0x6d, 0x63, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x31, 0x36, 0x31, 0x3b, 0x31, 0x32, 0x39, 0x3b, 0x32, 0x30, 0x34, 0x6d, 0x49, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x30, 0x30, 0x31, 0x3b, 0x31, 0x39, 0x35, 0x3b, 0x30, 0x35, 0x33, 0x6d, 0x4d, 0x1b, 0x5b, 0x30, 0x6d, 0x1b, 0x5b, 0x33, 0x38, 0x3b, 0x32, 0x3b, 0x30, 0x36, 0x34, 0x3b, 0x30, 0x34, 0x36, 0x3b, 0x32, 0x32, 0x34, 0x6d, 0x47, 0x1b, 0x5b, 0x30, 0x6d, 0x00, 0x00]
+```
+
+Given all of this, we need to reverse the `initialize_framebuffer()` and `display()` functions.
